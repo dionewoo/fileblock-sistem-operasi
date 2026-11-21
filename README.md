@@ -1,143 +1,118 @@
-# FileBlock
+# FileBlock: Simulator Alokasi File System
 
-Simulator interaktif **alokasi file system** untuk mata kuliah Sistem Operasi. FileBlock memperlihatkan secara visual dan langkah demi langkah perbedaan tiga metode alokasi file: **Contiguous**, **Linked (FAT)**, dan **Indexed (inode)**.
-
-> **Status:** Tahap awal (perencanaan & desain). Belum ada implementasi kode.
-
----
-
-## Daftar Isi
-
-1. [Tujuan](#tujuan)
-2. [Fitur Utama](#fitur-utama)
-3. [Cakupan Modul](#cakupan-modul)
-4. [Skenario Demo](#skenario-demo)
-5. [Rancangan Tampilan](#rancangan-tampilan)
-6. [Struktur Proyek (Rencana)](#struktur-proyek-rencana)
-7. [Roadmap](#roadmap)
-8. [Cara Menjalankan](#cara-menjalankan)
-9. [Catatan](#catatan)
+**Mata Kuliah:** Sistem Operasi  
+**Kategori:** B (Aplikasi Simulasi Fungsi Sistem Operasi)  
+**Kapasitas Tim:** 6 Anggota  
+**Teknologi:** HTML5, CSS3, JavaScript murni (Client-Side, zero-build, no ES modules)
 
 ---
 
-## Tujuan
+## 1. Ringkasan Proyek
 
-- Memvisualisasikan cara kerja tiga metode alokasi file pada disk.
-- Membandingkan kelebihan dan kelemahan tiap metode dengan angka yang dapat dihitung manual.
-- Menyediakan input yang dapat diubah (ukuran disk, ukuran blok, daftar operasi) agar simulator bisa dibuktikan kebenarannya saat demo.
+FileBlock adalah aplikasi web interaktif (*Single Page Application*) yang memvisualisasikan mekanisme internal Sistem Operasi dalam mengelola penyimpanan sekunder (disk). Disk direpresentasikan dalam bentuk susunan blok visual (CSS Grid) di mana pengguna dapat menjalankan simulasi langkah demi langkah (*step-by-step*), mengamati terjadinya fragmentasi, serta membandingkan performa 3 modul utama (9 mekanisme).
 
-## Fitur Utama
+### Modul & Mekanisme yang Diuji:
+1. **Modul A: Alokasi File**
+   - Contiguous Allocation (First-Fit)
+   - Linked Allocation (File Allocation Table / FAT)
+   - Indexed Allocation (Inode / Blok Indeks)
+   - *Fitur Spesifik:* Visualisasi Peta Disk, Tabel FAT, Kartu Inode, dan **Defragmentasi Disk**.
+2. **Modul B: Free Space Management**
+   - Bitmap (Bit Array)
+   - Linked List (Free List Pointer Chain)
+   - Grouping (Pointer Group Header)
+   - *Metrik:* Memori struktur data (Bytes) dan langkah pencarian $N$ blok kosong (*lookup steps*).
+3. **Modul C: Struktur Direktori**
+   - Single-level Directory
+   - Two-level Directory (MFD & UFD)
+   - Tree-structured Directory (Hierarki folder bersarang)
+   - *Metrik:* Kedalaman direktori maks, langkah pencarian file, dan deteksi konflik nama file (*name collision*).
 
-- **Form input**: ukuran disk, ukuran blok, dan daftar operasi (buat / hapus file).
-- **Peta blok disk berwarna**: satu warna per file, blok kosong berwarna abu-abu atau merah.
-- **Kontrol langkah**: tombol Prev / Next / Play, plus tab pemilihan metode.
-- **Log penjelasan** tiap langkah, misalnya: *"D butuh 4 blok, lubang terbesar hanya 3, alokasi gagal."*
-- **Tabel dan grafik batang perbandingan** ketiga metode.
-- **Defragmentasi** (khusus Contiguous) sebagai fitur bonus.
+---
 
-## Cakupan Modul
+## 2. Struktur Repositori & Pembagian Tugas (6 Anggota)
 
-| Modul | 3 Mekanisme | Metrik Pembanding |
-|-------|-------------|-------------------|
-| Alokasi file *(fokus tahap awal)* | Contiguous, Linked (FAT), Indexed (inode) | Fragmentasi internal/eksternal, akses disk untuk membaca blok ke-n |
-| Free space management | Bitmap, Linked list, Grouping | Memori yang dipakai, langkah untuk menemukan blok kosong |
-| Struktur direktori | Single-level, Two-level, Tree | Langkah pencarian file, konflik nama |
-
-## Skenario Demo
-
-**Input:** disk 12 blok (nomor 0-11), 1 blok = 4 KB. Blok dibutuhkan = `ceil(ukuran / 4 KB)`.
-
-| No | Operasi | File | Ukuran | Butuh Blok |
-|----|---------|------|--------|-----------|
-| 1 | Buat | A | 10 KB | 3 |
-| 2 | Buat | B | 6 KB | 2 |
-| 3 | Buat | C | 15 KB | 4 |
-| 4 | Hapus | B | - | - |
-| 5 | Buat | D | 13 KB | 4 |
-
-**Kondisi setelah langkah 4** (B dihapus): total ada 5 blok kosong, tetapi terpecah menjadi dua lubang (blok 3-4 dan blok 9-11).
-
-```
-Blok: 0 1 2 | 3 4 | 5 6 7 8 | 9 10 11
-      A A A | - - | C C C C | -  -  -
-```
-
-**Hasil langkah 5** (buat D, butuh 4 blok):
-
-| Metode | Hasil |
-|--------|-------|
-| Contiguous | **Gagal**: lubang terbesar hanya 3 blok (fragmentasi eksternal) |
-| Linked (FAT) | **Berhasil**: 3 → 4 → 9 → 10 → NULL |
-| Indexed (inode) | **Berhasil**: inode D = `[3, 4, 9, 10]` |
-
-**Perbandingan:**
-
-| Metrik | Contiguous | Linked | Indexed |
-|--------|-----------|--------|---------|
-| D berhasil disimpan? | Tidak | Ya | Ya |
-| Fragmentasi eksternal | Ada (lubang 2 dan 3 blok) | Tidak ada | Tidak ada |
-| Fragmentasi internal (A+C+D) | 3 KB (D gagal) | 6 KB | 6 KB |
-| Akses disk untuk membaca blok ke-4 file D | - | 4 (telusuri 3, 4, 9, 10) | 2 (1 baca inode + 1 baca data) |
-| Metadata | 2 angka per file (awal, panjang) | 1 pointer per blok | 1 tabel indeks per file |
-| Biaya defragmentasi | 4 salinan blok | Tidak perlu | Tidak perlu |
-
-Rincian fragmentasi internal: A menyia-nyiakan 2 KB (3 × 4 = 12, terpakai 10), C 1 KB (16 − 15), D 3 KB (16 − 13).
-
-**Bonus defragmentasi (Contiguous):** file C dipindah ke blok 3-6 (4 salinan blok), lalu D muat di blok 7-10.
-
-```
-Blok: 0 1 2 | 3 4 5 6 | 7 8 9 10 | 11
-      A A A | C C C C | D D D D  | -
-```
-
-> Skenario ini dipilih karena dalam satu alur terlihat kelemahan Contiguous (fragmentasi eksternal), kelemahan Linked (akses blok ke-n lambat), dan keunggulan Indexed (akses langsung).
-
-## Rancangan Tampilan
-
-| Area | Isi |
-|------|-----|
-| Kiri | Form input (ukuran disk, ukuran blok, daftar operasi) |
-| Tengah | Peta blok disk berwarna, satu warna per file, lubang kosong abu-abu atau merah |
-| Bawah | Tombol Prev / Next / Play, tab pilihan metode |
-| Kanan | Log penjelasan tiap langkah |
-| Paling bawah | Tabel dan grafik batang perbandingan (akses disk, fragmentasi, metadata) |
-
-## Struktur Proyek (Rencana)
-
-Struktur di bawah masih usulan dan dapat berubah setelah teknologi dipilih.
+Sesuai dengan dokumen **Spesifikasi Teknis & Perancangan Simulator File System**:
 
 ```
 fileblock/
-├── README.md
-├── docs/              # dokumen desain, contoh input/proses/output
-├── src/
-│   ├── allocation/    # contiguous, linked, indexed
-│   ├── freespace/     # bitmap, linked list, grouping (modul lanjutan)
-│   ├── directory/     # single-level, two-level, tree (modul lanjutan)
-│   └── ui/            # form input, peta disk, log, grafik
-└── tests/             # uji skenario (termasuk skenario demo A-B-C-D)
+├── index.html              # Layout Antarmuka Utama (Tab Navigasi Modul A, B, C)
+├── css/
+│   └── style.css           # Styling Komponen UI, Layout Grid Blok Disk, & Controls
+├── js/
+│   ├── core/
+│   │   ├── disk.js         # Data Model Disk & Fungsi Manipulasi Bersama
+│   │   └── runner.js       # Engine Eksekusi Simulasi & Pembangkit Objek Steps
+│   ├── modules/
+│   │   ├── allocation.js   # Algoritma Modul A (Contiguous, Linked, Indexed)
+│   │   ├── freespace.js    # Algoritma Modul B (Bitmap, Linked List, Grouping)
+│   │   └── directory.js    # Algoritma Modul C (Single, Two-level, Tree)
+│   └── ui/
+│       ├── diskView.js     # Komponen Render Peta Blok Disk, Tabel FAT, & Inode
+│       ├── controls.js     # Handler Event Kontrol Simulasi & Form Input
+│       └── charts.js       # Komponen Grafik Chart.js & Tabel Metrik
+├── docs/                   # Dokumentasi Proyek, Laporan PDF, Slide, & Screenshot
+│   └── spesifikasi_teknis.md
+└── README.md               # Dokumentasi Panduan & Penggunaan AI
 ```
 
-## Roadmap
+### Pembagian Tugas Anggota:
+1. **Ketua / Integrator**: Setup repositori Git, arsitektur `disk.js`, layout `index.html`, review code, dan deployment.
+2. **Dev Inti 1**: Modul A (Contiguous & Linked FAT), kalkulasi fragmentasi internal/eksternal, dan biaya akses blok ke-n.
+3. **Dev Inti 2**: Modul A (Indexed Inode) & Modul B (Bitmap, Linked List, Grouping), kalkulasi memori struktur data.
+4. **Dev Inti 3**: Modul C (Single-level, Two-level, Tree-structured), kedalaman struktur, dan pendeteksian konflik nama.
+5. **Dev Antarmuka**: Visualisasi grid disk CSS, logika pemutar (Prev/Next/Play/Pause), form input, defragmentasi, dan grafik Chart.js.
+6. **QA & Dokumentasi**: Pengujian skenario wajib, validasi perhitungan metrik, dokumentasi README.md, dan laporan akhir.
 
-- [x] Merumuskan skenario demo dan hasil yang diharapkan
-- [x] Menentukan metrik perbandingan dan rancangan tampilan
-- [ ] Memilih teknologi (bahasa dan framework UI)
-- [ ] Implementasi mesin simulasi: Contiguous
-- [ ] Implementasi mesin simulasi: Linked (FAT)
-- [ ] Implementasi mesin simulasi: Indexed (inode)
-- [ ] Antarmuka: form input, peta blok, kontrol Prev / Next / Play, log
-- [ ] Tabel dan grafik perbandingan
-- [ ] Fitur defragmentasi (Contiguous)
-- [ ] Uji skenario demo dan validasi hitungan manual
-- [ ] Modul Free space management
-- [ ] Modul Struktur direktori
+---
 
-## Cara Menjalankan
+## 3. Kontrak Data Internal (Core Engine ke UI Layer)
 
-*Belum tersedia.* Bagian ini akan diisi setelah implementasi dimulai (instalasi, perintah menjalankan, dan contoh penggunaan).
+Eksekusi simulasi dijalankan melalui fungsi `window.FileBlock.run(input, method)` dengan format kontrak data:
 
-## Catatan
+```javascript
+// Input Simulasi
+const input = {
+  diskSize: 12, // Total blok memori disk
+  blockKB: 4,   // Ukuran per blok (KB)
+  accessN: 4,   // Posisi blok yang diuji baca
+  ops: [
+    { type: "create", name: "A", sizeKB: 10 },
+    { type: "create", name: "B", sizeKB: 6 },
+    { type: "create", name: "C", sizeKB: 15 },
+    { type: "delete", name: "B" },
+    { type: "create", name: "D", sizeKB: 13 }
+  ]
+};
 
-- Pada metode Indexed, tabel indeks disimpan di area inode terpisah, bukan di blok data. Ini penyederhanaan yang sesuai dengan cara kerja inode di Unix.
-- Angka pada skenario demo sengaja dibuat kecil agar bisa dihitung manual saat presentasi.
+// Output Hasil Simulasi
+const output = window.FileBlock.run(input, "contiguous");
+// output = { method, steps: [...], metrics: { allocatedCount, failedCount, internalFragKB, externalFrag, readCostBlockN, metadataEntries, structureMemoryBytes, lookupSteps } }
+```
+
+---
+
+## 4. Hasil Verifikasi Skenario Utama (Uji Soal Wajib)
+
+Skenario: Disk 12 blok, ukuran 4 KB (Total 48 KB). Operasi: `buat A (10KB)`, `buat B (6KB)`, `buat C (15KB)`, `hapus B`, `buat D (13KB)`.
+- **Contiguous Allocation**:
+  - Gagal mengalokasikan D (13 KB = butuh 4 blok) akibat **Fragmentasi Eksternal** (total ruang kosong ada 5 blok, namun blok berurutan terbesar hanya 3 blok).
+  - Sisa fragmentasi internal total: **3 KB** (A: 2 KB + C: 1 KB).
+  - Biaya baca blok ke-4: **1 akses**.
+- **Linked Allocation (FAT)**:
+  - Berhasil mengalokasikan D menyebar pada blok bebas `[3, 4, 9, 10]`.
+  - Sisa fragmentasi internal total: **6 KB** (A: 2 KB + C: 1 KB + D: 3 KB).
+  - Biaya baca blok ke-4: **4 akses**.
+- **Indexed Allocation (Inode)**:
+  - Berhasil mengalokasikan D.
+  - Sisa fragmentasi internal total: **6 KB**.
+  - Biaya baca blok ke-4: **2 akses** (1 ke Inode + 1 langsung ke blok data).
+
+---
+
+## 5. Cara Menjalankan
+
+1. Buka folder proyek ini di komputer Anda.
+2. Klik dua kali file `index.html` pada browser apa saja (Google Chrome, Microsoft Edge, Mozilla Firefox, Safari).
+3. Tanpa instalasi dependensi, tanpa build tools, dan dapat langsung dibuka offline maupun via protokol `file://`.
+
