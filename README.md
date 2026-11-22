@@ -56,13 +56,14 @@ fileblock/
 └── README.md               # Dokumentasi Panduan & Penggunaan AI
 ```
 
-### Pembagian Tugas Anggota:
-1. **Ketua / Integrator**: Setup repositori Git, arsitektur `disk.js`, layout `index.html`, review code, dan deployment.
-2. **Dev Inti 1**: Modul A (Contiguous & Linked FAT), kalkulasi fragmentasi internal/eksternal, dan biaya akses blok ke-n.
-3. **Dev Inti 2**: Modul A (Indexed Inode) & Modul B (Bitmap, Linked List, Grouping), kalkulasi memori struktur data.
-4. **Dev Inti 3**: Modul C (Single-level, Two-level, Tree-structured), kedalaman struktur, dan pendeteksian konflik nama.
-5. **Dev Antarmuka**: Visualisasi grid disk CSS, logika pemutar (Prev/Next/Play/Pause), form input, defragmentasi, dan grafik Chart.js.
-6. **QA & Dokumentasi**: Pengujian skenario wajib, validasi perhitungan metrik, dokumentasi README.md, dan laporan akhir.
+| No | Nama                           | Peran                               | Rincian Tugas dan Kontribusi                                                     |
+|----|--------------------------------|-------------------------------------|----------------------------------------------------------------------------------|
+| 1  | Diwa Nisfiya Sya'bani          | Ketua, integrator, dev antarmuka    | Setup repositori, review code, deployment, `index.html`, `diskView.js`           |
+| 2  | Machdilhuda Barkah Gumilar     | Dev inti (core)                     | Model disk dan fungsi bantu bersama (`disk.js`)                                  |
+| 3  | Muhammad Noufal Rafsanjani     | Dev inti (core), QA dan dokumentasi | Runner simulasi dan metrik (`runner.js`), `README.md`, pengujian skenario        |
+| 4  | Deanka Rizq Gumilar            | Dev inti (modul), Modul A           | Alokasi Contiguous, Linked (FAT), Indexed (Inode) (`allocation.js`)              |
+| 5  | Muhammad Syahdan Husna Mubarok | Dev inti (modul), Modul B dan C     | Free space management (`freespace.js`), struktur direktori (`directory.js`)      |
+| 6  | Tesah Haerani                  | Dev antarmuka                       | Grafik Chart.js (`charts.js`), styling (`style.css`)                             |
 
 ---
 
