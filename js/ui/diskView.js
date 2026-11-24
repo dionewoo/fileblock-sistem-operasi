@@ -1,4 +1,3 @@
-﻿
 (function () {
   'use strict';
 
@@ -14,14 +13,14 @@
       if (document.getElementById('disk-tooltip')) return;
       const tip = document.createElement('div');
       tip.id = 'disk-tooltip';
-      tip.className = 'fixed hidden px-3 py-2 text-xs bg-white border border-slate-900 rounded-none pointer-events-none z-50 text-black leading-tight';
+      tip.className = 'disk-tooltip hidden';
       document.body.appendChild(tip);
 
       document.addEventListener('mousemove', (e) => {
         const t = document.getElementById('disk-tooltip');
         if (t && !t.classList.contains('hidden')) {
-          t.style.left = `${e.clientX + 12}px`;
-          t.style.top = `${e.clientY + 12}px`;
+          t.style.left = `${e.clientX + 14}px`;
+          t.style.top = `${e.clientY + 14}px`;
         }
       });
     }
@@ -31,90 +30,114 @@
       if (!container) return;
 
       container.innerHTML = '';
-      const total = blocks.length;
-
-      let colsClass = 'grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12';
-      if (total <= 16) {
-        colsClass = 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6';
-      } else if (total > 32) {
-        colsClass = 'grid-cols-4 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12';
-      }
-      container.className = `grid ${colsClass} gap-1.5 w-full`;
+      container.className = 'blocks';
 
       blocks.forEach((b, idx) => {
         const blockEl = document.createElement('div');
         blockEl.setAttribute('data-index', idx);
 
-        let statusClass = 'bg-white hover:bg-slate-50 border border-slate-300 text-black';
-        let contentHtml = '';
+        let pointerInfo = '';
+        if (method === 'linked') {
+          pointerInfo = (b.nextPointer !== -1 && b.nextPointer !== null && b.nextPointer !== undefined)
+            ? `<span style="font-size:9px;font-family:monospace;font-weight:700">→ #${b.nextPointer}</span>`
+            : `<span style="font-size:9px;font-family:monospace;font-weight:700">EOF</span>`;
+        } else if (method === 'indexed') {
+          pointerInfo = `<span style="font-size:9px;font-family:monospace;font-weight:700">${b.nextPointer || 'inode'}</span>`;
+        }
 
         if (b.status === 'allocated') {
-          statusClass = 'border border-blue-600 bg-blue-100 text-black font-semibold';
-          let pointerInfo = '';
-          if (method === 'linked') {
-            pointerInfo = b.nextPointer !== -1 && b.nextPointer !== null
-              ? `<span class="text-[9px] font-mono text-blue-700">→ #${b.nextPointer}</span>`
-              : `<span class="text-[9px] font-mono text-blue-700 font-bold">EOF</span>`;
-          } else if (method === 'indexed') {
-            pointerInfo = `<span class="text-[9px] font-mono text-blue-700">${b.nextPointer || 'inode'}</span>`;
+          blockEl.className = 'blk u';
+          if (b.color) {
+            blockEl.style.backgroundColor = b.color;
           }
-
-          contentHtml = `
-            <div class="flex items-center justify-between w-full leading-none">
-              <span class="text-[11px] font-bold text-black truncate">${b.fileName || b.fileId}</span>
+          blockEl.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
+              <span>#${idx}</span>
               ${pointerInfo}
             </div>
-            <div class="text-[9px] text-slate-600 font-mono mt-0.5">
-              b-${b.blockOffset + 1}/${b.totalFileBlocks}
-            </div>
+            <b style="align-self:center;font-size:13px">${b.fileName || b.fileId || '^ _ ^'}</b>
           `;
         } else if (b.status === 'hole') {
-          statusClass = 'hole-state border border-dashed border-blue-600 bg-white text-black';
-          contentHtml = `
-            <span class="text-[9px] font-mono text-blue-700">
-              [lubang]
-            </span>
+          blockEl.className = 'blk h';
+          blockEl.innerHTML = `
+            <span>#${idx}</span>
+            <b style="align-self:center;font-size:12px;color:#E11D48">T_T</b>
+          `;
+        } else {
+          blockEl.className = 'blk';
+          blockEl.innerHTML = `
+            <span>#${idx}</span>
+            <b style="align-self:center;font-size:13px;color:var(--mut)">-_-</b>
           `;
         }
 
-        blockEl.className = `disk-block flex flex-col justify-between p-1 rounded-none cursor-pointer min-h-[38px] ${statusClass}`;
-        blockEl.innerHTML = `
-          <div class="flex items-center justify-between w-full text-[10px] font-mono text-black leading-none">
-            <span class="font-bold">#${idx}</span>
-          </div>
-          <div class="w-full">${contentHtml}</div>
-        `;
+        blockEl.addEventListener('click', () => {
+          if (b.status === 'free' || b.status === 'hole') {
+            const customInp = document.getElementById('input-custom-blocks');
+            if (customInp) {
+              let current = customInp.value.split(/[,;\s]+/).map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+              if (current.includes(idx)) {
+                current = current.filter(x => x !== idx);
+              } else {
+                current.push(idx);
+              }
+              customInp.value = current.join(', ');
+            }
+          }
+        });
 
         blockEl.addEventListener('mouseenter', () => this.showTooltip(b, method));
         blockEl.addEventListener('mouseleave', () => this.hideTooltip());
 
         container.appendChild(blockEl);
       });
+
+      this.updateTipsBox(method, blocks);
+    }
+
+    updateTipsBox(method, blocks) {
+      const tipTextEl = document.getElementById('allocation-tip-text');
+      if (!tipTextEl) return;
+
+      const hasHole = blocks.some(b => b.status === 'hole');
+
+      if (method === 'contiguous') {
+        if (hasHole) {
+          tipTextEl.textContent = 'First-Fit memilih lubang pertama yang cukup besar. Blok kosong yang terpotong menjadi lubang (fragmentasi eksternal), file yang lebih besar tidak muat di lubang sempit.';
+        } else {
+          tipTextEl.textContent = 'Contiguous menempatkan file berurutan dalam satu kontigu. Akses sangat cepat (1 I/O), namun berisiko fragmentasi eksternal bila ada file yang dihapus.';
+        }
+      } else if (method === 'linked') {
+        tipTextEl.textContent = 'Linked (FAT) menyambung blok lewat penunjuk. File dapat terpencar di blok mana pun tanpa ada fragmentasi eksternal!';
+      } else if (method === 'indexed') {
+        tipTextEl.textContent = 'Indexed (Inode) memakai satu blok indeks yang menunjuk semua blok data. Akses acak langsung via tabel pointer!';
+      }
     }
 
     showTooltip(b, method) {
       const tip = document.getElementById('disk-tooltip');
       if (!tip) return;
 
-      let statusBadge = 'Blok Bebas';
+      let statusBadge = 'Bebas';
       let detail = 'Blok belum terisi data file.';
 
       if (b.status === 'allocated') {
-        statusBadge = `Terisi (${b.fileName || b.fileId})`;
+        statusBadge = `Terisi - File ${b.fileName || b.fileId}`;
         detail = `
-          <div>File: <strong>${b.fileName || b.fileId}</strong> (Bagian ${b.blockOffset + 1} dari ${b.totalFileBlocks})</div>
+          <div>Ukuran File: <strong>${b.sizeKB || (b.totalFileBlocks * 4)} KB</strong></div>
+          <div>Bagian: <strong>Blok ke-${b.blockOffset + 1} dari ${b.totalFileBlocks}</strong></div>
           <div>Frag. Internal: <strong>${b.internalFragKB || 0} KB</strong></div>
-          ${method === 'linked' ? `<div>Next: <strong>${b.nextPointer === -1 ? 'EOF' : '#' + b.nextPointer}</strong></div>` : ''}
-          ${method === 'indexed' ? `<div>Pointer: <strong>${b.nextPointer || 'Indeks'}</strong></div>` : ''}
+          ${method === 'linked' ? `<div>Next Pointer: <strong>${b.nextPointer === -1 ? 'EOF' : '#' + b.nextPointer}</strong></div>` : ''}
+          ${method === 'indexed' ? `<div>Pointer: <strong>${b.nextPointer || 'Indeks Inode'}</strong></div>` : ''}
         `;
       } else if (b.status === 'hole') {
         statusBadge = 'Lubang (Fragmentasi Eksternal)';
-        detail = 'Blok bekas file yang dihapus.';
+        detail = 'Fragmentasi Eksternal: blok bebas bekas file terhapus yang terisolasi.';
       }
 
       tip.innerHTML = `
-        <div class="font-bold border-b border-black pb-1 mb-1 text-black">Blok Memori #${b.index}</div>
-        <div class="text-[11px] space-y-0.5 text-black">
+        <div style="font-weight:700;border-bottom:1px solid var(--ink);padding-bottom:4px;margin-bottom:4px">Blok Memori #${b.index}</div>
+        <div style="font-size:11px;line-height:1.4">
           <div>Status: <strong>${statusBadge}</strong></div>
           ${detail}
         </div>
@@ -145,22 +168,22 @@
         const fileObj = entry.fileId && activeFiles ? activeFiles[entry.fileId] : null;
         const fileName = fileObj ? fileObj.name : (entry.fileId || '-');
 
-        let nextBadge = '<span class="text-slate-400 font-mono">-</span>';
+        let nextBadge = '<span style="color:var(--mut);font-family:monospace">-</span>';
         if (isAllocated) {
           if (entry.next === -1 || entry.next === null) {
-            nextBadge = '<span class="px-1.5 py-0.2 bg-slate-200 text-black font-bold text-[10px]">EOF</span>';
+            nextBadge = '<span class="pill" style="background:#e2e8f0;padding:1px 8px;font-size:10px">EOF</span>';
           } else {
-            nextBadge = `<span class="px-1.5 py-0.2 bg-blue-100 text-black font-bold font-mono text-[10px]">#${entry.next}</span>`;
+            nextBadge = `<span class="pill" style="background:var(--bl);padding:1px 8px;font-size:10px">#${entry.next}</span>`;
           }
         }
 
         const tr = document.createElement('tr');
-        tr.className = `border-b border-slate-200 text-xs text-black ${isAllocated ? 'bg-blue-50/40' : ''}`;
+        if (isAllocated) tr.style.background = 'var(--soft)';
         tr.innerHTML = `
-          <td class="py-1 px-3 font-mono font-bold text-black">#${entry.blockIndex}</td>
-          <td class="py-1 px-3 font-medium text-black">${fileName}</td>
-          <td class="py-1 px-3">${nextBadge}</td>
-          <td class="py-1 px-3 font-medium text-black">${entry.status}</td>
+          <td style="font-family:monospace;font-weight:700">#${entry.blockIndex}</td>
+          <td><b>${fileName}</b></td>
+          <td>${nextBadge}</td>
+          <td>${entry.status}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -182,20 +205,21 @@
       for (const fId in inodes) {
         const item = inodes[fId];
         const card = document.createElement('div');
-        card.className = 'p-2.5 bg-white border border-slate-300 rounded-sm space-y-1.5 text-black';
+        card.className = 'stat';
+        card.style.textAlign = 'left';
 
         const pointersBadge = item.directPointers.map((p, i) =>
-          `<span class="px-1.5 py-0.5 border border-blue-400 bg-blue-50 text-black font-mono text-[10px]">p[${i}]: #${p}</span>`
+          `<span class="pill" style="background:var(--pu);padding:2px 8px;font-size:10px">p[${i}]: #${p}</span>`
         ).join(' ');
 
         card.innerHTML = `
-          <div class="flex items-center justify-between border-b border-slate-200 pb-1 text-black">
-            <span class="font-bold text-xs">Inode #${item.inodeNumber}</span>
-            <span class="text-xs font-semibold text-blue-700">${item.name} (${item.sizeKB} KB)</span>
+          <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--mut);padding-bottom:4px;margin-bottom:6px">
+            <b>Inode #${item.inodeNumber}</b>
+            <span style="font-weight:700;color:var(--pk)">${item.name} (${item.sizeKB} KB)</span>
           </div>
-          <div class="text-[11px] text-black">
-            <span class="font-semibold block mb-0.5">Pointer Blok Data:</span>
-            <div class="flex flex-wrap gap-1">${pointersBadge}</div>
+          <div style="font-size:11px">
+            <span style="display:block;margin-bottom:4px">Pointer Data:</span>
+            <div style="display:flex;flex-wrap:wrap;gap:4px">${pointersBadge}</div>
           </div>
         `;
         listEl.appendChild(card);
@@ -207,7 +231,9 @@
 
       document.querySelectorAll('.freespace-tab-btn').forEach(btn => {
         const mode = btn.getAttribute('data-mode');
-        btn.classList.toggle('active', mode === activeMode);
+        const isActive = (mode === activeMode);
+        btn.classList.toggle('active', isActive);
+        btn.classList.toggle('on', isActive);
       });
 
       const modes = ['bitmap', 'linked', 'grouping'];
@@ -223,12 +249,8 @@
         freeSpaceState.bitmap.array.forEach(b => {
           const bitBox = document.createElement('div');
           const isOne = (b.bit === 1);
-          bitBox.className = `bit-box flex flex-col items-center justify-center border text-xs font-mono font-bold ${isOne ? 'bg-blue-100 border-blue-600 text-black' : 'bg-white border-blue-600 border-dashed text-black'
-            }`;
-          bitBox.innerHTML = `
-            <span>${b.bit}</span>
-            <span class="text-[8px] font-normal">#${b.index}</span>
-          `;
+          bitBox.className = `bit${isOne ? ' u' : ''}`;
+          bitBox.innerHTML = `${b.bit}<small>#${b.index}</small>`;
           bitContainer.appendChild(bitBox);
         });
 
@@ -242,16 +264,16 @@
         listContainer.innerHTML = '';
         const indices = freeSpaceState.freeList.indices;
         if (indices.length === 0) {
-          listContainer.innerHTML = '<span class="text-xs text-black">Tidak ada blok bebas.</span>';
+          listContainer.innerHTML = '<span style="color:var(--mut);font-style:italic">Tidak ada blok bebas. Disk penuh!</span>';
         } else {
           indices.forEach((idx, i) => {
             const node = document.createElement('div');
-            node.className = 'flex items-center gap-1.5 text-black';
+            node.style.display = 'inline-flex';
+            node.style.alignItems = 'center';
+            node.style.gap = '6px';
             node.innerHTML = `
-              <div class="px-2 py-0.5 border border-slate-400 bg-white text-xs font-mono font-bold text-black">
-                Blok #${idx}
-              </div>
-              <span class="text-black text-xs">${i < indices.length - 1 ? '→' : '→ <span class="font-bold">NULL</span>'}</span>
+              <span class="pill" style="background:var(--bl);padding:2px 8px">#${idx}</span>
+              <span>${i < indices.length - 1 ? '→' : '→ <b style="font-family:monospace">NULL</b>'}</span>
             `;
             listContainer.appendChild(node);
           });
@@ -263,28 +285,29 @@
         groupingContainer.innerHTML = '';
         const groups = freeSpaceState.grouping.groups;
         if (groups.length === 0) {
-          groupingContainer.innerHTML = '<span class="text-xs text-black">Tidak ada grup blok bebas.</span>';
+          groupingContainer.innerHTML = '<span style="color:var(--mut);font-style:italic">Tidak ada grup blok bebas.</span>';
         } else {
           groups.forEach(g => {
             const card = document.createElement('div');
-            card.className = 'p-2.5 bg-white border border-slate-300 rounded-sm space-y-1.5 text-black';
+            card.className = 'stat';
+            card.style.textAlign = 'left';
 
             const blocksList = g.freeBlocks.map(b =>
-              `<span class="px-1.5 py-0.2 border border-blue-400 bg-blue-50 text-black font-mono text-[11px]">#${b}</span>`
+              `<span class="pill" style="background:var(--bl);padding:1px 6px;font-size:10px">#${b}</span>`
             ).join(' ');
 
             card.innerHTML = `
-              <div class="flex items-center justify-between border-b border-slate-200 pb-1">
-                <span class="font-bold text-xs text-black">Grup #${g.groupId}</span>
-                <span class="text-[10px] text-slate-600">Header: #${g.headerBlock}</span>
+              <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--mut);padding-bottom:4px;margin-bottom:6px">
+                <b>Grup #${g.groupId}</b>
+                <span style="font-size:10px;color:var(--mut)">Header: #${g.headerBlock}</span>
               </div>
-              <div class="text-xs">
-                <span class="text-[11px] font-semibold block mb-0.5">Daftar Blok Bebas:</span>
-                <div class="flex flex-wrap gap-1">${blocksList}</div>
+              <div style="font-size:11px">
+                <span style="display:block;margin-bottom:4px">Daftar Blok Bebas:</span>
+                <div style="display:flex;flex-wrap:wrap;gap:4px">${blocksList}</div>
               </div>
-              <div class="text-[11px] pt-1 border-t border-slate-200 flex items-center justify-between">
+              <div style="font-size:11px;margin-top:6px;border-top:1px solid var(--mut);padding-top:4px;display:flex;justify-content:space-between">
                 <span>Next Group:</span>
-                <strong class="font-mono text-black">${g.nextGroupBlock !== null ? '#' + g.nextGroupBlock : 'NULL'}</strong>
+                <strong style="font-family:monospace">${g.nextGroupBlock !== null ? '#' + g.nextGroupBlock : 'NULL'}</strong>
               </div>
             `;
             groupingContainer.appendChild(card);
@@ -303,9 +326,9 @@
       if (memList) memList.textContent = `${freeSpaceState.freeList.memoryBytes} B`;
       if (memGrouping) memGrouping.textContent = `${freeSpaceState.grouping.memoryBytes} B`;
 
-      if (lookupBitmap) lookupBitmap.textContent = `${freeSpaceState.bitmap.lookupSteps} langkah`;
-      if (lookupList) lookupList.textContent = `${freeSpaceState.freeList.lookupSteps} langkah`;
-      if (lookupGrouping) lookupGrouping.textContent = `${freeSpaceState.grouping.lookupSteps} langkah`;
+      if (lookupBitmap) lookupBitmap.textContent = `${freeSpaceState.bitmap.lookupSteps} Langkah`;
+      if (lookupList) lookupList.textContent = `${freeSpaceState.freeList.lookupSteps} Langkah`;
+      if (lookupGrouping) lookupGrouping.textContent = `${freeSpaceState.grouping.lookupSteps} Langkah`;
     }
 
     renderDirectoryModule(dirData, activeMode = 'single') {
@@ -313,7 +336,9 @@
 
       document.querySelectorAll('.dir-tab-btn').forEach(btn => {
         const mode = btn.getAttribute('data-mode');
-        btn.classList.toggle('active', mode === activeMode);
+        const isActive = (mode === activeMode);
+        btn.classList.toggle('active', isActive);
+        btn.classList.toggle('on', isActive);
       });
 
       const maxDepthEl = document.getElementById('dir-max-depth');
@@ -324,7 +349,7 @@
       if (maxDepthEl) maxDepthEl.textContent = dirData.maxDepth;
       if (lookupStepsEl) lookupStepsEl.textContent = `${dirData.lookupSteps} langkah`;
       if (conflictCountEl) conflictCountEl.textContent = dirData.conflictCount;
-      if (descEl) descEl.textContent = dirData.explanation;
+      if (descEl) descEl.textContent = 'Klasifikasi: ' + dirData.explanation;
 
       const visualContainer = document.getElementById('directory-visual-container');
       if (!visualContainer) return;
@@ -333,30 +358,30 @@
       if (dirData.mode === 'single') {
         const files = dirData.structure.files;
         let fileRows = files.map(f => `
-          <tr class="border-b border-slate-200 text-xs text-black">
-            <td class="py-1.5 px-3 font-semibold text-black">${f.name}</td>
-            <td class="py-1.5 px-3 text-black">${f.sizeKB} KB</td>
-            <td class="py-1.5 px-3 font-mono text-[11px] text-blue-700">[${(f.blocks || []).join(', ')}]</td>
-            <td class="py-1.5 px-3 font-mono text-[11px] text-black">${f.path}</td>
+          <tr>
+            <td><b>${f.name}</b></td>
+            <td>${f.sizeKB} KB</td>
+            <td>[${(f.blocks || []).join(', ')}]</td>
+            <td style="font-family:monospace">${f.path}</td>
           </tr>
         `).join('');
 
         if (files.length === 0) {
-          fileRows = `<tr><td colspan="4" class="py-3 text-center text-xs text-black">Direktori kosong</td></tr>`;
+          fileRows = `<tr><td colspan="4" class="empty">Direktori kosong</td></tr>`;
         }
 
         visualContainer.innerHTML = `
-          <div class="border border-slate-300 rounded-sm bg-white">
-            <div class="p-2 bg-slate-100 border-b border-slate-300 text-xs font-bold text-black">
-              Direktori Root (/)
-            </div>
-            <table class="w-full text-left text-xs">
-              <thead class="bg-slate-50 text-black border-b border-slate-200 text-[11px]">
+          <div class="tw">
+            <table>
+              <thead>
                 <tr>
-                  <th class="py-1.5 px-3">Nama File</th>
-                  <th class="py-1.5 px-3">Ukuran</th>
-                  <th class="py-1.5 px-3">Blok Terisi</th>
-                  <th class="py-1.5 px-3">Path</th>
+                  <th colspan="4" style="padding:10px">Direktori Root (/)</th>
+                </tr>
+                <tr style="font-weight:700">
+                  <td>Nama File</td>
+                  <td>Ukuran</td>
+                  <td>Blok Terisi</td>
+                  <td>Path</td>
                 </tr>
               </thead>
               <tbody>${fileRows}</tbody>
@@ -367,60 +392,59 @@
         const users = dirData.structure.users;
         const usersHtml = users.map(u => {
           const files = u.files.map(f => `
-            <div class="flex items-center justify-between p-1.5 bg-slate-50 border border-slate-200 text-xs text-black">
-              <div class="flex items-center gap-1.5">
-                <span class="font-bold text-black">${f.name}</span>
-                <span class="text-[10px] text-blue-700 font-mono">${f.path}</span>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:var(--soft);border:1px solid var(--ink);border-radius:6px;margin-bottom:4px;font-size:11px">
+              <div>
+                <b>${f.name}</b>
+                <span style="font-family:monospace;color:#2563EB;margin-left:4px">${f.path}</span>
               </div>
-              <span class="text-[11px] font-mono text-black">${f.sizeKB} KB</span>
+              <span>${f.sizeKB} KB</span>
             </div>
           `).join('');
 
           return `
-            <div class="p-2.5 bg-white border border-slate-300 rounded-none space-y-1 text-black">
-              <div class="font-bold text-xs text-black border-b border-slate-200 pb-0.5">
-                Pemilik (User): ${u.username} (${u.path})
+            <div class="stat" style="text-align:left">
+              <div style="font-weight:700;border-bottom:1px solid var(--mut);padding-bottom:4px;margin-bottom:6px;display:flex;justify-content:space-between">
+                <span>User: ${u.username}</span>
+                <span style="font-family:monospace;color:var(--mut);font-size:10px">${u.path}</span>
               </div>
-              <div class="space-y-1">
-                ${files || '<span class="text-xs text-black">Tidak ada file</span>'}
-              </div>
+              <div>${files || '<span style="color:var(--mut);font-style:italic">Tidak ada file</span>'}</div>
             </div>
           `;
         }).join('');
 
-        visualContainer.innerHTML = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">${usersHtml}</div>`;
+        visualContainer.innerHTML = `<div class="grid" style="grid-template-columns:1fr 1fr">${usersHtml}</div>`;
       } else if (dirData.mode === 'tree') {
         const tree = dirData.structure;
 
         const renderSubTree = (node) => {
           if (node.type === 'file') {
             return `
-              <div class="tree-node flex items-center justify-between py-0.5 text-xs text-black">
-                <div class="flex items-center gap-1.5">
-                  <span class="font-bold text-black">${node.name}</span>
-                  <span class="text-[10px] text-blue-700 font-mono">${node.path}</span>
+              <div class="tree-node" style="display:flex;justify-content:space-between;padding:2px 0;font-size:12px">
+                <div>
+                  <b>📄 ${node.name}</b>
+                  <span style="font-family:monospace;color:#2563EB;font-size:10px;margin-left:4px">${node.path}</span>
                 </div>
-                <span class="text-[10px] font-mono text-black">${node.sizeKB} KB</span>
+                <span>${node.sizeKB} KB</span>
               </div>
             `;
           }
 
           const childrenHtml = (node.children || []).map(c => renderSubTree(c)).join('');
           return `
-            <div class="tree-node space-y-0.5 text-black">
-              <div class="text-xs font-bold text-black flex items-center gap-1.5">
-                <span>[dir] ${node.name}</span>
-                <span class="text-[10px] font-normal text-slate-600 font-mono">(${node.path})</span>
+            <div class="tree-node" style="margin-bottom:4px">
+              <div style="font-weight:700;font-size:12px">
+                <span>📁 ${node.name}</span>
+                <span style="font-size:10px;color:var(--mut);font-family:monospace">(${node.path})</span>
               </div>
-              <div class="pl-3 border-l border-slate-300 space-y-0.5 my-1">
-                ${childrenHtml || '<span class="text-[11px] text-slate-500 italic">Folder kosong</span>'}
+              <div style="padding-left:14px;border-left:2px solid var(--ink);margin:4px 0">
+                ${childrenHtml || '<span style="font-size:11px;color:var(--mut);font-style:italic">Folder kosong</span>'}
               </div>
             </div>
           `;
         };
 
         visualContainer.innerHTML = `
-          <div class="p-3 bg-white border border-slate-300 rounded-sm text-black">
+          <div class="tw" style="padding:12px">
             ${renderSubTree(tree)}
           </div>
         `;
@@ -444,17 +468,15 @@
 
       files.forEach(f => {
         const tr = document.createElement('tr');
-        tr.className = 'border-b border-slate-200 text-xs text-black hover:bg-slate-50';
-
-        const blocksStr = (f.allocatedBlocks || []).map(b => `#${b}`).join(', ');
+        const blocksStr = (f.allocatedBlocks || []).join(', ');
 
         tr.innerHTML = `
-          <td class="py-1.5 px-2 font-bold text-black">${f.name || f.id}</td>
-          <td class="py-1.5 px-2 text-black">${f.sizeKB} KB</td>
-          <td class="py-1.5 px-2 font-mono text-[11px] text-blue-700">${blocksStr || '-'}</td>
-          <td class="py-1.5 px-2 text-black">${f.internalFragKB || 0} KB</td>
-          <td class="py-1.5 px-2 text-right">
-            <button class="btn-delete-file px-2 py-0.5 text-[11px] font-semibold text-black bg-white hover:bg-slate-100 border border-slate-400" data-file-id="${f.id}">
+          <td><b>${f.name || f.id}</b></td>
+          <td>${f.sizeKB} KB</td>
+          <td>${blocksStr || '-'}</td>
+          <td>${f.internalFragKB || 0} KB</td>
+          <td style="text-align:right">
+            <button class="btn s btn-delete-file" data-file-id="${f.id}">
               Hapus
             </button>
           </td>
@@ -471,37 +493,29 @@
 
     renderStepLog(step, currentStepIndex, totalSteps) {
       const logContainer = document.getElementById('step-log-text');
-      const bannerContainer = document.getElementById('step-alert-banner');
       const indicator = document.getElementById('step-progress-indicator');
-      if (!logContainer) return;
+      const badgeOp = document.getElementById('step-log-badge-op');
+      const badgeStatus = document.getElementById('step-log-badge-status');
 
       if (indicator) {
-        indicator.textContent = `Langkah ${currentStepIndex} dari ${totalSteps - 1}`;
+        indicator.textContent = `Langkah ${currentStepIndex} dari ${Math.max(1, totalSteps - 1)}`;
       }
 
-      if (bannerContainer) {
-        if (!step.ok) {
-          bannerContainer.classList.remove('hidden');
-          bannerContainer.className = 'p-2.5 mb-2.5 border border-blue-600 bg-blue-50 text-black text-xs font-medium';
-          bannerContainer.innerHTML = `
-            <div>
-              <strong class="text-black">Status: ${step.failureReason === 'EXTERNAL_FRAGMENTATION' ? 'Fragmentasi Eksternal Terjadi' : 'Alokasi Gagal'}</strong>
-              <p class="mt-0.5 text-black">${step.log}</p>
-            </div>
-          `;
-        } else {
-          bannerContainer.classList.add('hidden');
-        }
+      const opName = step.op || 'alloc';
+      const isOk = !!step.ok;
+
+      if (badgeOp) {
+        badgeOp.textContent = opName;
+        badgeOp.className = 'pill in';
+      }
+      if (badgeStatus) {
+        badgeStatus.textContent = isOk ? 'Sukses' : 'Gagal';
+        badgeStatus.className = isOk ? 'pill ok' : 'pill er';
       }
 
-      logContainer.innerHTML = `
-        <div class="flex items-center gap-2 mb-1 text-black">
-          <span class="px-1.5 py-0.5 bg-blue-100 border border-blue-300 font-bold text-[11px] text-black">${step.op}</span>
-          <span>•</span>
-          <span class="text-xs font-semibold text-black">${step.ok ? 'Sukses' : 'Gagal'}</span>
-        </div>
-        <p class="text-xs text-black leading-normal">${step.log}</p>
-      `;
+      if (logContainer) {
+        logContainer.textContent = step.log || 'Siap menjalankan simulasi.';
+      }
     }
   }
 
