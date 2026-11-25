@@ -1,5 +1,4 @@
-﻿
-(function() {
+(function () {
   'use strict';
 
   window.FileBlock = window.FileBlock || {};
@@ -8,7 +7,7 @@
   class AllocationModule {
     constructor() {}
 
-    allocateFile(diskModel, blocks, activeFiles, op, config, auxiliaryState) {
+    allocateFile(diskModel, blocks, activeFiles, op, config, tables) {
       const method = config.method || 'contiguous';
       const fileId = op.file || op.name;
       const fileName = op.name || op.file;
@@ -24,12 +23,14 @@
         }, config);
       } else if (method === 'linked') {
         return this.allocateLinked(diskModel, blocks, activeFiles, {
-          fileId, fileName, sizeKB, blocksNeeded, internalFragKB, colorObj
-        }, config, auxiliaryState.fat);
+          fileId, fileName, sizeKB, blocksNeeded, internalFragKB, colorObj,
+          customBlocks: op.customBlocks
+        }, config, tables.fat);
       } else if (method === 'indexed') {
         return this.allocateIndexed(diskModel, blocks, activeFiles, {
-          fileId, fileName, sizeKB, blocksNeeded, internalFragKB, colorObj
-        }, config, auxiliaryState.inodes);
+          fileId, fileName, sizeKB, blocksNeeded, internalFragKB, colorObj,
+          customBlocks: op.customBlocks
+        }, config, tables.inodes);
       }
     }
 
@@ -95,7 +96,7 @@
 
       return {
         ok: true,
-        log: `File ${fileName} (${sizeKB} KB) dialokasikan pada blok ${startIdx}-${startIdx + blocksNeeded - 1}. Sisa frag. internal: ${internalFragKB} KB.`,
+        log: `File ${fileName} (${sizeKB} KB) dialokasikan pada blok #${startIdx} s/d #${startIdx + blocksNeeded - 1}. Sisa frag. internal: ${internalFragKB} KB.`,
         blocks,
         activeFiles,
         allocatedIndices,
@@ -104,7 +105,7 @@
     }
 
     allocateLinked(diskModel, blocks, activeFiles, fileData, config, fatTable) {
-      const { fileId, fileName, sizeKB, blocksNeeded, internalFragKB, colorObj } = fileData;
+      const { fileId, fileName, sizeKB, blocksNeeded, internalFragKB, colorObj, customBlocks } = fileData;
       const freeIndices = diskModel.getFreeBlockIndices(blocks);
 
       if (freeIndices.length < blocksNeeded) {
@@ -120,7 +121,32 @@
         };
       }
 
-      const allocatedIndices = freeIndices.slice(0, blocksNeeded);
+      let allocatedIndices = [];
+
+      if (Array.isArray(customBlocks) && customBlocks.length > 0) {
+        const validCustom = customBlocks.filter(idx => freeIndices.includes(idx));
+        const uniqueCustom = Array.from(new Set(validCustom));
+        if (uniqueCustom.length === blocksNeeded) {
+          allocatedIndices = uniqueCustom;
+        } else if (uniqueCustom.length > 0 && uniqueCustom.length < blocksNeeded) {
+          const remaining = freeIndices.filter(idx => !uniqueCustom.includes(idx));
+          allocatedIndices = uniqueCustom.concat(remaining.slice(0, blocksNeeded - uniqueCustom.length));
+        }
+      }
+
+      if (allocatedIndices.length === 0) {
+        if (freeIndices.length <= blocksNeeded) {
+          allocatedIndices = [...freeIndices];
+        } else {
+          const seed = (fileId.charCodeAt(0) || 7) + (fileName.charCodeAt(fileName.length - 1) || 3);
+          const shuffled = [...freeIndices].sort((a, b) => {
+            const hashA = (a * 17 + seed * 13) % 47;
+            const hashB = (b * 17 + seed * 13) % 47;
+            return hashA - hashB;
+          });
+          allocatedIndices = shuffled.slice(0, blocksNeeded);
+        }
+      }
 
       for (let i = 0; i < blocksNeeded; i++) {
         const curIdx = allocatedIndices[i];
@@ -164,10 +190,10 @@
         colorText: colorObj.text
       };
 
-      const chainStr = allocatedIndices.join(' → ');
+      const chainStr = allocatedIndices.map(idx => `#${idx}`).join(' → ');
       return {
         ok: true,
-        log: `File ${fileName} (${sizeKB} KB) dialokasikan via Linked FAT: [${chainStr} → EOF]. Frag. internal: ${internalFragKB} KB.`,
+        log: `File ${fileName} (${sizeKB} KB) dialokasikan via Linked FAT: [${chainStr} → EOF]. Bebas fragmentasi eksternal!`,
         blocks,
         activeFiles,
         fat: fatTable,
@@ -177,7 +203,7 @@
     }
 
     allocateIndexed(diskModel, blocks, activeFiles, fileData, config, inodeTable) {
-      const { fileId, fileName, sizeKB, blocksNeeded, internalFragKB, colorObj } = fileData;
+      const { fileId, fileName, sizeKB, blocksNeeded, internalFragKB, colorObj, customBlocks } = fileData;
       const freeIndices = diskModel.getFreeBlockIndices(blocks);
 
       if (freeIndices.length < blocksNeeded) {
@@ -193,7 +219,33 @@
         };
       }
 
-      const allocatedDataBlocks = freeIndices.slice(0, blocksNeeded);
+      let allocatedDataBlocks = [];
+
+      if (Array.isArray(customBlocks) && customBlocks.length > 0) {
+        const validCustom = customBlocks.filter(idx => freeIndices.includes(idx));
+        const uniqueCustom = Array.from(new Set(validCustom));
+        if (uniqueCustom.length === blocksNeeded) {
+          allocatedDataBlocks = uniqueCustom;
+        } else if (uniqueCustom.length > 0 && uniqueCustom.length < blocksNeeded) {
+          const remaining = freeIndices.filter(idx => !uniqueCustom.includes(idx));
+          allocatedDataBlocks = uniqueCustom.concat(remaining.slice(0, blocksNeeded - uniqueCustom.length));
+        }
+      }
+
+      if (allocatedDataBlocks.length === 0) {
+        if (freeIndices.length <= blocksNeeded) {
+          allocatedDataBlocks = [...freeIndices];
+        } else {
+          const seed = (fileId.charCodeAt(0) || 7) + (fileName.charCodeAt(fileName.length - 1) || 3);
+          const shuffled = [...freeIndices].sort((a, b) => {
+            const hashA = (a * 17 + seed * 13) % 47;
+            const hashB = (b * 17 + seed * 13) % 47;
+            return hashA - hashB;
+          });
+          allocatedDataBlocks = shuffled.slice(0, blocksNeeded);
+        }
+      }
+
       const inodeNum = Object.keys(inodeTable || {}).length + 1;
 
       for (let i = 0; i < blocksNeeded; i++) {
@@ -250,7 +302,7 @@
       };
     }
 
-    deallocateFile(diskModel, blocks, activeFiles, fileId, auxiliaryState) {
+    deallocateFile(diskModel, blocks, activeFiles, fileId, tables) {
       const file = activeFiles[fileId];
       if (!file) {
         return {
@@ -258,7 +310,7 @@
           log: `File '${fileId}' tidak ditemukan untuk dihapus.`,
           blocks,
           activeFiles,
-          ...auxiliaryState
+          ...tables
         };
       }
 
@@ -276,14 +328,14 @@
             isIndexBlock: false,
             nextPointer: null,
             internalFragKB: 0,
-            color: null,
-            colorBorder: null,
-            colorText: null
+            color: '#fecaca',
+            colorBorder: '#e11d48',
+            colorText: '#e11d48'
           };
         }
 
-        if (auxiliaryState.fat && auxiliaryState.fat[idx]) {
-          auxiliaryState.fat[idx] = {
+        if (tables.fat && tables.fat[idx]) {
+          tables.fat[idx] = {
             blockIndex: idx,
             fileId: null,
             next: null,
@@ -292,8 +344,8 @@
         }
       });
 
-      if (auxiliaryState.inodes && auxiliaryState.inodes[fileId]) {
-        delete auxiliaryState.inodes[fileId];
+      if (tables.inodes && tables.inodes[fileId]) {
+        delete tables.inodes[fileId];
       }
 
       delete activeFiles[fileId];
@@ -304,7 +356,7 @@
         blocks,
         activeFiles,
         freedBlocks,
-        ...auxiliaryState
+        ...tables
       };
     }
 
@@ -331,4 +383,3 @@
 
   window.FileBlock.modules.allocation = new AllocationModule();
 })();
-
