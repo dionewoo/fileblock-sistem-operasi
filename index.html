@@ -1,344 +1,393 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="light">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FileBlock - Simulator File System</title>
-
-  <script src="https://cdn.tailwindcss.com"></script>
-
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>FileBlock - Simulator Alokasi File System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <link rel="stylesheet" href="css/style.css">
 </head>
 
-<body class="bg-white text-black min-h-screen flex flex-col">
+<body>
 
-  <header class="border-b border-black bg-white sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 h-12 flex items-center justify-between">
+  <nav id="nav">
+    <a class="logo" href="#home"><i><svg viewBox="0 0 36 36" style="width:20px;height:20px;display:block" fill="none"
+          xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M6 14L4 6L12 9C13.8 8.4 15.8 8 18 8C20.2 8 22.2 8.4 24 9L32 6L30 14C31.3 16.2 32 18.7 32 21.5C32 28.4 25.7 34 18 34C10.3 34 4 28.4 4 21.5C4 18.7 4.7 16.2 6 14Z"
+            fill="#F472B6" stroke="#0F172A" stroke-width="2" />
+          <circle cx="12.5" cy="21" r="2" fill="#0F172A" />
+          <circle cx="23.5" cy="21" r="2" fill="#0F172A" />
+          <ellipse cx="9" cy="23.5" rx="1.8" ry="1" fill="#FDA4AF" />
+          <ellipse cx="27" cy="23.5" rx="1.8" ry="1" fill="#FDA4AF" />
+          <path d="M16 24C16.8 25 19.2 25 20 24" stroke="#0F172A" stroke-width="2" stroke-linecap="round" />
+        </svg></i>FileBlock</a>
+    <span class="sp"></span>
+    <a class="nav-link l on" href="#home" data-page="home">Home</a>
+    <a class="nav-link l" href="#alokasi" data-page="alokasi">Alokasi File</a>
+    <a class="nav-link l" href="#freespace" data-page="freespace">Free Space</a>
+    <a class="nav-link l" href="#direktori" data-page="direktori">Struktur Direktori</a>
+    <a class="nav-link l" href="#komparasi" data-page="komparasi">Komparasi</a>
+  </nav>
 
-      <span class="text-sm font-bold tracking-tight text-black">
-        File<span class="text-blue-600">Block</span>
-      </span>
+  <main id="app">
 
-      <nav class="flex items-center gap-1">
-        <button data-target="section-alokasi" class="nav-link active text-xs font-bold">
-          Alokasi File
-        </button>
-        <button data-target="section-freespace" class="nav-link text-xs font-bold">
-          Free Space
-        </button>
-        <button data-target="section-direktori" class="nav-link text-xs font-bold">
-          Struktur Direktori
-        </button>
-        <button data-target="section-komparasi" class="nav-link text-xs font-bold">
-          Komparasi
-        </button>
-      </nav>
-
-    </div>
-  </header>
-
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-3 space-y-4">
-
-    <div class="border border-black p-2 bg-white flex flex-wrap items-center justify-between gap-2">
-      <div class="flex items-center gap-1.5">
-        <button id="btn-prev" class="btn-secondary px-3 py-0.5 text-xs font-bold">
-          Prev
-        </button>
-        <button id="btn-play" class="btn-primary px-3 py-0.5 text-xs font-bold">
-          Play
-        </button>
-        <button id="btn-next" class="btn-secondary px-3 py-0.5 text-xs font-bold">
-          Next
-        </button>
+    <div id="view-home" class="page-view">
+      <div class="hero box">
+        <div class="av dk"><svg viewBox="0 0 36 36" style="width:52px;height:52px;display:block" fill="none"
+            xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M6 14L4 6L12 9C13.8 8.4 15.8 8 18 8C20.2 8 22.2 8.4 24 9L32 6L30 14C31.3 16.2 32 18.7 32 21.5C32 28.4 25.7 34 18 34C10.3 34 4 28.4 4 21.5C4 18.7 4.7 16.2 6 14Z"
+              fill="#F472B6" stroke="#0F172A" stroke-width="2" />
+            <circle cx="12.5" cy="21" r="2" fill="#0F172A" />
+            <circle cx="23.5" cy="21" r="2" fill="#0F172A" />
+            <ellipse cx="9" cy="23.5" rx="1.8" ry="1" fill="#FDA4AF" />
+            <ellipse cx="27" cy="23.5" rx="1.8" ry="1" fill="#FDA4AF" />
+            <path d="M16 24C16.8 25 19.2 25 20 24" stroke="#0F172A" stroke-width="2" stroke-linecap="round" />
+          </svg></div>
+        <h1>FileBlock</h1>
+        <p>Simulator alokasi file system. Pilih menu di bawah untuk mulai belajar.</p>
       </div>
-
-      <div class="flex items-center gap-2 text-xs text-black">
-        <span>Kecepatan:</span>
-        <input id="playback-speed-slider" type="range" min="300" max="2500" step="100" value="1200"
-          class="w-20 accent-blue-600">
-        <span id="playback-speed-label" class="font-mono text-[11px] w-8">1.2s</span>
-        <span id="step-progress-indicator" class="border border-black px-2 py-0.5 font-bold text-xs bg-slate-50">
-          Langkah 0/5
-        </span>
+      <div class="menu">
+        <a class="mc" href="#alokasi">
+          <div class="ic" style="background:var(--bl)">💾</div>
+          <b>Alokasi File</b>
+          <span>Tempatkan file ke blok disk dengan 3 metode.</span>
+        </a>
+        <a class="mc" href="#freespace">
+          <div class="ic" style="background:var(--gr)">🧩</div>
+          <b>Free Space</b>
+          <span>Lihat cara disk melacak blok yang masih bebas.</span>
+        </a>
+        <a class="mc" href="#direktori">
+          <div class="ic" style="background:var(--pu)">📁</div>
+          <b>Struktur Direktori</b>
+          <span>Bandingkan susunan folder satu, dua, dan banyak level.</span>
+        </a>
+        <a class="mc" href="#komparasi">
+          <div class="ic" style="background:var(--pk)">📊</div>
+          <b>Komparasi</b>
+          <span>Adu kinerja ketiga metode dalam grafik dan tabel.</span>
+        </a>
       </div>
     </div>
 
-    <div id="step-alert-banner" class="hidden"></div>
+    <div id="view-alokasi" class="page-view hidden">
+      <a class="back" href="#home">← Home</a>
 
-    <div class="border border-black p-2 bg-white flex items-start gap-2">
-      <span class="text-[10px] font-bold uppercase text-black shrink-0 mt-0.5">Log:</span>
-      <div id="step-log-text" class="text-xs text-black leading-tight">Memuat simulasi...</div>
-    </div>
-
-    <section id="section-alokasi" class="border border-black p-3 bg-white space-y-3">
-
-      <div class="flex flex-wrap items-center justify-between border-b border-black pb-2 gap-2">
-        <div class="font-bold text-xs uppercase text-black">
-          Alokasi File
+      <div class="box" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="btn-prev" class="btn-ctrl">Prev</button>
+          <button id="btn-play" class="btn-play">Play</button>
+          <button id="btn-next" class="btn-ctrl">Next</button>
         </div>
 
-        <div class="flex items-center gap-1">
-          <button data-method="contiguous" class="method-tab-btn active text-xs font-bold">1. Contiguous</button>
-          <button data-method="linked" class="method-tab-btn text-xs font-bold">2. Linked (FAT)</button>
-          <button data-method="indexed" class="method-tab-btn text-xs font-bold">3. Indexed (Inode)</button>
+        <div style="display:flex;align-items:center;gap:10px;font-size:12px;font-weight:700">
+          <span>Kecepatan</span>
+          <input id="playback-speed-slider" type="range" min="300" max="2500" step="100" value="1200" class="slider-speed">
+          <span id="playback-speed-label" style="font-family:monospace;font-size:12px;width:32px">1.2s</span>
+          <span id="step-progress-indicator" class="pill" style="background:#fff">Langkah 0 dari 5</span>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+      <div id="step-alert-banner" class="hidden"></div>
 
-        <div class="lg:col-span-8 space-y-2.5">
+      <div class="box">
+        <div class="st">
+          <span class="av dk" style="width:44px;height:44px;background:var(--pk)"><svg viewBox="0 0 36 36"
+              style="width:32px;height:32px;display:block" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M6 14L4 6L12 9C13.8 8.4 15.8 8 18 8C20.2 8 22.2 8.4 24 9L32 6L30 14C31.3 16.2 32 18.7 32 21.5C32 28.4 25.7 34 18 34C10.3 34 4 28.4 4 21.5C4 18.7 4.7 16.2 6 14Z"
+                fill="#F472B6" stroke="#0F172A" stroke-width="2" />
+              <circle cx="12.5" cy="21" r="2" fill="#0F172A" />
+              <circle cx="23.5" cy="21" r="2" fill="#0F172A" />
+              <ellipse cx="9" cy="23.5" rx="1.8" ry="1" fill="#FDA4AF" />
+              <ellipse cx="27" cy="23.5" rx="1.8" ry="1" fill="#FDA4AF" />
+              <path d="M16 24C16.8 25 19.2 25 20 24" stroke="#0F172A" stroke-width="2" stroke-linecap="round" />
+            </svg></span>
+          <span id="step-log-badge-op" class="pill in">alloc</span>
+          <span id="step-log-badge-status" class="pill ok">Sukses</span>
+          <span id="step-log-text">Memuat simulasi awal...</span>
+        </div>
+      </div>
 
-          <div class="border border-slate-300 p-2 space-y-1.5">
-            <div class="text-[11px] font-bold text-black uppercase">Peta Blok Disk:</div>
-            <div id="disk-grid" class="grid grid-cols-6 gap-1.5 w-full"></div>
-
-            <div class="flex items-center gap-4 pt-1 text-[11px] text-black border-t border-slate-200">
-              <div class="flex items-center gap-1"><span
-                  class="w-3 h-3 border border-slate-400 bg-white inline-block"></span> Bebas</div>
-              <div class="flex items-center gap-1"><span
-                  class="w-3 h-3 border border-blue-600 bg-blue-100 inline-block"></span> Terisi</div>
-              <div class="flex items-center gap-1"><span
-                  class="w-3 h-3 border border-blue-600 border-dashed bg-white inline-block"></span> Lubang (Hole)</div>
-            </div>
+      <section id="section-alokasi" class="box">
+        <div class="hd">
+          <span class="pill" style="background:var(--bl)">Alokasi File</span>
+          <div class="tabs">
+            <button data-method="contiguous" class="method-tab-btn tab on">1. Contiguous</button>
+            <button data-method="linked" class="method-tab-btn tab">2. Linked (FAT)</button>
+            <button data-method="indexed" class="method-tab-btn tab">3. Indexed (Inode)</button>
           </div>
-
-          <div id="fat-table-container" class="border border-slate-300 p-2 hidden space-y-1">
-            <div class="font-bold text-xs text-black">Tabel File Allocation Table (FAT):</div>
-            <div class="max-h-36 overflow-y-auto border border-slate-200">
-              <table class="w-full text-left text-xs text-black">
-                <thead class="bg-slate-100 border-b border-slate-300 sticky top-0 text-[11px]">
-                  <tr>
-                    <th class="py-1 px-2">Blok #</th>
-                    <th class="py-1 px-2">File</th>
-                    <th class="py-1 px-2">Next Pointer</th>
-                    <th class="py-1 px-2">Status</th>
-                  </tr>
-                </thead>
-                <tbody id="fat-table-body"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <div id="inode-cards-container" class="border border-slate-300 p-2 hidden space-y-1">
-            <div class="font-bold text-xs text-black">Tabel Indeks Inode:</div>
-            <div id="inode-cards-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
-          </div>
-
         </div>
 
-        <div class="lg:col-span-4 space-y-2.5">
+        <div class="grid">
+          <div>
+            <h2>PETA BLOK DISK</h2>
+            <div id="disk-grid" class="blocks"></div>
 
-          <div class="border border-slate-300 p-2 space-y-1.5">
-            <div class="flex items-center justify-between">
-              <span class="font-bold text-xs text-black">Tambah File:</span>
-              <button id="btn-clear-disk" type="button"
-                class="text-[10px] text-blue-700 hover:underline font-bold">Reset (Mulai dari 0)</button>
+            <div class="lg">
+              <span><i class="sw"></i>Bebas</span>
+              <span><i class="sw u"></i>Terisi</span>
+              <span><i class="sw h"></i>Lubang (Hole)</span>
             </div>
-            <form id="form-add-file" onsubmit="event.preventDefault(); return false;" class="space-y-1 text-xs">
-              <div class="flex gap-1.5">
-                <input id="input-file-name" type="text" value="E" placeholder="Nama File (cth: E)" required
-                  class="border border-black px-2 py-0.5 text-xs w-1/2">
-                <input id="input-file-size" type="number" min="1" max="256" value="10" placeholder="KB" required
-                  class="border border-black px-2 py-0.5 text-xs w-1/2">
+
+            <div class="tip">
+              <span class="av" style="background:#BAE6FD"><svg viewBox="0 0 36 36"
+                  style="width:36px;height:36px;display:block" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="7.5" cy="10" r="5.5" fill="#93C5FD" stroke="#0F172A" stroke-width="2" />
+                  <circle cx="28.5" cy="10" r="5.5" fill="#93C5FD" stroke="#0F172A" stroke-width="2" />
+                  <circle cx="7.5" cy="10" r="3" fill="#FBCFE8" />
+                  <circle cx="28.5" cy="10" r="3" fill="#FBCFE8" />
+                  <circle cx="18" cy="20" r="13" fill="#93C5FD" stroke="#0F172A" stroke-width="2" />
+                  <circle cx="13" cy="18.5" r="2" fill="#0F172A" />
+                  <circle cx="13.6" cy="17.9" r="0.7" fill="#FFFFFF" />
+                  <circle cx="23" cy="18.5" r="2" fill="#0F172A" />
+                  <circle cx="23.6" cy="17.9" r="0.7" fill="#FFFFFF" />
+                  <ellipse cx="9.5" cy="22" rx="2" ry="1.2" fill="#FDA4AF" />
+                  <ellipse cx="26.5" cy="22" rx="2" ry="1.2" fill="#FDA4AF" />
+                  <path d="M8 19L3.5 18M8 21.5L3.5 22.5" stroke="#0F172A" stroke-width="1.5" stroke-linecap="round" />
+                  <path d="M28 19L32.5 18M28 21.5L32.5 22.5" stroke="#0F172A" stroke-width="1.5"
+                    stroke-linecap="round" />
+                  <ellipse cx="18" cy="21.5" rx="1.8" ry="1.2" fill="#F472B6" />
+                  <path d="M16.5 23.8C17.2 24.8 18.8 24.8 19.5 23.8" stroke="#0F172A" stroke-width="1.5"
+                    stroke-linecap="round" />
+                </svg></span>
+              <span><b>Tips</b><br><span id="allocation-tip-text">Contiguous menempatkan file berurutan dalam satu
+                  kontigu. Akses sangat cepat (1 I/O), namun berisiko fragmentasi eksternal bila ada file yang
+                  dihapus.</span></span>
+            </div>
+
+            <div id="fat-table-container" class="ch hidden" style="margin-top:14px">
+              <h2 style="margin:0 0 8px">TABEL FILE ALLOCATION TABLE (FAT)</h2>
+              <div class="tw">
+                <table style="min-width:0">
+                  <thead>
+                    <tr>
+                      <th>Blok #</th>
+                      <th>File</th>
+                      <th>Next Pointer</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="fat-table-body"></tbody>
+                </table>
               </div>
-              <button id="btn-add-file" type="button" class="btn-primary w-full py-0.5 text-xs font-bold">
-                + Tambah File
-              </button>
-            </form>
-          </div>
+            </div>
 
-          <div class="border border-slate-300 p-2 space-y-1">
-            <div class="font-bold text-xs text-black">File Aktif di Disk:</div>
-            <div class="max-h-44 overflow-y-auto">
-              <table class="w-full text-left text-xs text-black">
-                <thead class="bg-slate-100 border-b border-slate-300 text-[11px]">
-                  <tr>
-                    <th class="py-0.5 px-1.5">File</th>
-                    <th class="py-0.5 px-1.5">Ukuran</th>
-                    <th class="py-0.5 px-1.5">Blok</th>
-                    <th class="py-0.5 px-1.5">Frag</th>
-                    <th class="py-0.5 px-1.5 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody id="active-files-tbody"></tbody>
-              </table>
-              <div id="active-files-empty" class="py-2 text-center text-xs text-black hidden">
-                Tidak ada file tersimpan.
-              </div>
+            <div id="inode-cards-container" class="ch hidden" style="margin-top:14px">
+              <h2 style="margin:0 0 8px">TABEL INDEKS INODE</h2>
+              <div id="inode-cards-list" class="g3" style="margin-bottom:0"></div>
             </div>
           </div>
 
+          <div>
+            <div class="ch" style="margin-bottom:14px">
+              <div class="hd" style="margin-bottom:8px">
+                <h2 style="margin:0">TAMBAH FILE</h2>
+                <a id="btn-clear-disk" href="#alokasi"
+                  style="font-size:11px;color:#2563EB;font-weight:700;text-decoration:none">Reset</a>
+              </div>
+
+              <form id="form-add-file" onsubmit="event.preventDefault(); return false;">
+                <div style="display:flex;gap:8px;margin-bottom:10px">
+                  <input id="input-file-name" aria-label="Nama file" value="A" placeholder="Nama" required>
+                  <input id="input-file-size" aria-label="Ukuran KB" type="number" min="1" max="256" value="10"
+                    placeholder="KB" required style="max-width:90px">
+                </div>
+
+                <div id="linked-custom-blocks-wrapper" class="hidden" style="margin-bottom:10px">
+                  <div
+                    style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;margin-bottom:4px">
+                    <span>Pilih Blok (cth: 1, 5, 9):</span>
+                    <button id="btn-randomize-blocks" type="button"
+                      style="background:none;border:none;padding:0;font-size:11px;color:#2563EB;font-weight:700;cursor:pointer">Acak
+                      Posisi Blok</button>
+                  </div>
+                  <input id="input-custom-blocks" type="text" placeholder="Kosongkan untuk otomatis acak">
+                </div>
+
+                <button id="btn-add-file" type="button" class="btn">+ Tambah File</button>
+              </form>
+            </div>
+
+            <div class="ch">
+              <h2>FILE AKTIF DI DISK</h2>
+              <div class="tw">
+                <table style="min-width:0">
+                  <thead>
+                    <tr>
+                      <th>File</th>
+                      <th>Ukuran</th>
+                      <th>Blok</th>
+                      <th>Frag</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="active-files-tbody"></tbody>
+                </table>
+                <div id="active-files-empty" class="empty hidden">Tidak ada file aktif di disk.</div>
+              </div>
+            </div>
+          </div>
         </div>
+      </section>
+    </div>
 
-      </div>
+    <div id="view-freespace" class="page-view hidden">
+      <a class="back" href="#home">← Home</a>
 
-    </section>
-
-    <section id="section-freespace" class="border border-black p-3 bg-white space-y-3">
-
-      <div class="flex flex-wrap items-center justify-between border-b border-black pb-2 gap-2">
-        <div class="font-bold text-xs uppercase text-black">
-          Free Space
-        </div>
-
-        <div class="flex items-center gap-1">
-          <button data-mode="bitmap" class="freespace-tab-btn active text-xs font-bold">1. Bitmap</button>
-          <button data-mode="linked" class="freespace-tab-btn text-xs font-bold">2. Linked List</button>
-          <button data-mode="grouping" class="freespace-tab-btn text-xs font-bold">3. Grouping</button>
-        </div>
-      </div>
-
-      <div class="border border-slate-300 p-2 space-y-2">
-        <div id="freespace-view-bitmap" class="space-y-1.5">
-          <div class="text-xs font-bold text-black">Bit Array (1 = Terisi, 0 = Bebas):</div>
-          <div id="bitmap-bits-array" class="flex flex-wrap gap-1"></div>
-          <div class="p-1 border border-slate-300 text-xs text-black flex items-center justify-between">
-            <span>Bit String:</span>
-            <code id="bitmap-string-display" class="font-mono font-bold text-blue-700 tracking-wider"></code>
+      <section id="section-freespace" class="box">
+        <div class="hd">
+          <span class="pill" style="background:var(--gr)">Free Space</span>
+          <div class="tabs">
+            <button data-mode="bitmap" class="freespace-tab-btn tab on">1. Bitmap</button>
+            <button data-mode="linked" class="freespace-tab-btn tab">2. Linked List</button>
+            <button data-mode="grouping" class="freespace-tab-btn tab">3. Grouping</button>
           </div>
         </div>
 
-        <div id="freespace-view-linked" class="space-y-1.5 hidden">
-          <div class="text-xs font-bold text-black">Rantai Pointer Free List:</div>
-          <div id="freelist-chain-display" class="flex flex-wrap items-center gap-1.5 p-1.5 border border-slate-300">
+        <div id="freespace-view-bitmap">
+          <h2>BIT ARRAY (1 = TERISI, 0 = BEBAS)</h2>
+          <div id="bitmap-bits-array" class="bits"></div>
+          <div class="bs">
+            <span>Bit String</span>
+            <code id="bitmap-string-display"></code>
           </div>
         </div>
 
-        <div id="freespace-view-grouping" class="space-y-1.5 hidden">
-          <div class="text-xs font-bold text-black">Grup Penunjuk Blok Bebas:</div>
-          <div id="grouping-cards-display" class="grid grid-cols-1 sm:grid-cols-3 gap-2"></div>
-        </div>
-      </div>
-
-      <div class="border border-slate-300 p-2 space-y-1">
-        <div class="font-bold text-xs text-black uppercase">Metrik Free Space:</div>
-        <table class="w-full text-left text-xs text-black">
-          <thead class="bg-slate-100 border-b border-black text-[11px]">
-            <tr>
-              <th class="py-1 px-2">Mekanisme</th>
-              <th class="py-1 px-2">Memori Struktur Data</th>
-              <th class="py-1 px-2">Langkah Pencarian 4 Blok Bebas</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-200">
-            <tr>
-              <td class="py-1 px-2 font-bold">Bitmap</td>
-              <td id="metric-mem-bitmap" class="py-1 px-2 font-mono">-</td>
-              <td id="metric-lookup-bitmap" class="py-1 px-2 font-mono">-</td>
-            </tr>
-            <tr>
-              <td class="py-1 px-2 font-bold">Linked List</td>
-              <td id="metric-mem-freelist" class="py-1 px-2 font-mono">-</td>
-              <td id="metric-lookup-freelist" class="py-1 px-2 font-mono">-</td>
-            </tr>
-            <tr>
-              <td class="py-1 px-2 font-bold">Grouping</td>
-              <td id="metric-mem-grouping" class="py-1 px-2 font-mono">-</td>
-              <td id="metric-lookup-grouping" class="py-1 px-2 font-mono">-</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-    </section>
-
-    <section id="section-direktori" class="border border-black p-3 bg-white space-y-3">
-
-      <div class="flex flex-wrap items-center justify-between border-b border-black pb-2 gap-2">
-        <div class="font-bold text-xs uppercase text-black">
-          Struktur Direktori
+        <div id="freespace-view-linked" class="hidden">
+          <h2>RANTAI POINTER FREE LIST</h2>
+          <div id="freelist-chain-display" class="bs" style="flex-wrap:wrap;gap:8px"></div>
         </div>
 
-        <div class="flex items-center gap-1">
-          <button data-mode="single" class="dir-tab-btn active text-xs font-bold">1. Single-Level</button>
-          <button data-mode="two_level" class="dir-tab-btn text-xs font-bold">2. Two-Level</button>
-          <button data-mode="tree" class="dir-tab-btn text-xs font-bold">3. Tree-Structured</button>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-3 gap-2">
-        <div class="border border-slate-300 p-1.5 bg-white text-black text-center">
-          <div class="text-[10px] font-bold uppercase">Kedalaman Maks:</div>
-          <div id="dir-max-depth" class="text-sm font-bold">1</div>
-        </div>
-        <div class="border border-slate-300 p-1.5 bg-white text-black text-center">
-          <div class="text-[10px] font-bold uppercase">Langkah Cari File:</div>
-          <div id="dir-lookup-steps" class="text-sm font-bold">1 langkah</div>
-        </div>
-        <div class="border border-slate-300 p-1.5 bg-white text-black text-center">
-          <div class="text-[10px] font-bold uppercase">Konflik Nama:</div>
-          <div id="dir-conflict-count" class="text-sm font-bold">0</div>
-        </div>
-      </div>
-
-      <div id="dir-mode-desc" class="border border-slate-300 p-1.5 bg-slate-50 text-xs text-black"></div>
-      <div id="directory-visual-container"></div>
-
-    </section>
-
-    <section id="section-komparasi" class="border border-black p-3 bg-white space-y-3">
-
-      <div class="border-b border-black pb-1.5 font-bold text-xs uppercase text-black">
-        Komparasi
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-        <div class="border border-slate-300 p-2 bg-white space-y-1">
-          <div class="text-[11px] font-bold text-black border-b border-slate-200 pb-0.5">Akses Disk (Blok ke-n)</div>
-          <div class="relative h-36 w-full">
-            <canvas id="chart-disk-access"></canvas>
-          </div>
+        <div id="freespace-view-grouping" class="hidden">
+          <h2>GRUP PENUNJUK BLOK BEBAS</h2>
+          <div id="grouping-cards-display" class="g3"></div>
         </div>
 
-        <div class="border border-slate-300 p-2 bg-white space-y-1">
-          <div class="text-[11px] font-bold text-black border-b border-slate-200 pb-0.5">Fragmentasi Internal (KB)</div>
-          <div class="relative h-36 w-full">
-            <canvas id="chart-fragmentation"></canvas>
-          </div>
-        </div>
-
-        <div class="border border-slate-300 p-2 bg-white space-y-1">
-          <div class="text-[11px] font-bold text-black border-b border-slate-200 pb-0.5">Memori Struktur Data (Bytes)
-          </div>
-          <div class="relative h-36 w-full">
-            <canvas id="chart-memory-overhead"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <div class="border border-slate-300 p-2 bg-white space-y-1">
-        <div class="font-bold text-xs text-black uppercase">
-          Tabel Perbandingan Kinerja:
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs text-black">
-            <thead class="bg-slate-100 border-b border-black text-[11px]">
+        <h2 style="margin-top:14px">METRIK FREE SPACE</h2>
+        <div class="tw">
+          <table>
+            <thead>
               <tr>
-                <th class="py-1 px-2">Metode</th>
-                <th class="py-1 px-2">Status</th>
-                <th class="py-1 px-2">Frag. Eksternal</th>
-                <th class="py-1 px-2">Frag. Internal</th>
-                <th class="py-1 px-2">Akses Blok N</th>
-                <th class="py-1 px-2">Memori Struktur</th>
-                <th class="py-1 px-2">Entri Metadata</th>
-                <th class="py-1 px-2">Karakteristik</th>
+                <th>Mekanisme</th>
+                <th>Memori Struktur Data</th>
+                <th>Langkah Cari 4 Blok Bebas</th>
               </tr>
             </thead>
-            <tbody id="comparison-table-body" class="divide-y divide-slate-200"></tbody>
+            <tbody>
+              <tr>
+                <td><b>Bitmap</b></td>
+                <td id="metric-mem-bitmap">-</td>
+                <td id="metric-lookup-bitmap">-</td>
+              </tr>
+              <tr>
+                <td><b>Linked List</b></td>
+                <td id="metric-mem-freelist">-</td>
+                <td id="metric-lookup-freelist">-</td>
+              </tr>
+              <tr>
+                <td><b>Grouping</b></td>
+                <td id="metric-mem-grouping">-</td>
+                <td id="metric-lookup-grouping">-</td>
+              </tr>
+            </tbody>
           </table>
         </div>
-      </div>
+        <p style="font-size:12px;color:var(--mut);margin-top:14px">Isi disk dari menu Alokasi File, lalu kembali ke sini
+          untuk melihat perubahannya.</p>
+      </section>
+    </div>
 
-    </section>
+    <div id="view-direktori" class="page-view hidden">
+      <a class="back" href="#home">← Home</a>
+
+      <section id="section-direktori" class="box">
+        <div class="hd">
+          <span class="pill" style="background:var(--pu)">Struktur Direktori</span>
+          <div class="tabs">
+            <button data-mode="single" class="dir-tab-btn tab on">1. Single-Level</button>
+            <button data-mode="two_level" class="dir-tab-btn tab">2. Two-Level</button>
+            <button data-mode="tree" class="dir-tab-btn tab">3. Tree-Structured</button>
+          </div>
+        </div>
+
+        <div class="g3">
+          <div class="stat">
+            <small>KEDALAMAN MAKS</small>
+            <b id="dir-max-depth">1</b>
+          </div>
+          <div class="stat">
+            <small>LANGKAH CARI FILE</small>
+            <b id="dir-lookup-steps">1 langkah</b>
+          </div>
+          <div class="stat">
+            <small>KONFLIK NAMA</small>
+            <b id="dir-conflict-count">0</b>
+          </div>
+        </div>
+
+        <div id="dir-mode-desc" class="note"></div>
+        <div id="directory-visual-container"></div>
+      </section>
+    </div>
+
+    <div id="view-komparasi" class="page-view hidden">
+      <a class="back" href="#home">← Home</a>
+
+      <section id="section-komparasi" class="box">
+        <div class="hd">
+          <span class="pill" style="background:var(--pk)">Komparasi</span>
+        </div>
+
+        <div class="g3">
+          <div class="ch">
+            <h2>AKSES DISK (BLOK KE - N)</h2>
+            <div style="position:relative;height:160px;width:100%">
+              <canvas id="chart-disk-access"></canvas>
+            </div>
+          </div>
+
+          <div class="ch">
+            <h2>FRAGMENTASI INTERNAL (KB)</h2>
+            <div style="position:relative;height:160px;width:100%">
+              <canvas id="chart-fragmentation"></canvas>
+            </div>
+          </div>
+
+          <div class="ch">
+            <h2>MEMORI STRUKTUR DATA (B)</h2>
+            <div style="position:relative;height:160px;width:100%">
+              <canvas id="chart-memory-overhead"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <h2 style="margin-top:16px">TABEL PERBANDINGAN KINERJA</h2>
+        <div class="tw">
+          <table style="min-width:640px">
+            <thead>
+              <tr>
+                <th>Metode</th>
+                <th>Status</th>
+                <th>Frag. Eksternal</th>
+                <th>Frag. Internal</th>
+                <th>Akses Blok N</th>
+                <th>Karakteristik</th>
+              </tr>
+            </thead>
+            <tbody id="comparison-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
 
   </main>
 
-  <footer class="border-t border-black bg-white py-2 text-center text-xs text-black">
-    FileBlock - Simulator File System
-  </footer>
+  <footer>FileBlock - Simulator Alokasi File System</footer>
 
   <script src="js/core/disk.js"></script>
   <script src="js/modules/allocation.js"></script>
