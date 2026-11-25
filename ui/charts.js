@@ -1,5 +1,4 @@
-﻿
-(function() {
+﻿(function () {
   'use strict';
 
   window.FileBlock = window.FileBlock || {};
@@ -16,10 +15,13 @@
       if (typeof Chart === 'undefined') return;
 
       const chartFont = {
-        family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
+        family: "'Space Grotesk', system-ui, sans-serif",
         size: 11,
         weight: 'bold'
       };
+
+      const barColors = ['#FBBF24', '#BFE3FF', '#F472B6'];
+      const borderColor = '#111111';
 
       const ctxAccess = document.getElementById('chart-disk-access');
       if (ctxAccess) {
@@ -27,14 +29,14 @@
         this.accessChart = new Chart(ctxAccess, {
           type: 'bar',
           data: {
-            labels: ['Contiguous', 'Linked (FAT)', 'Indexed (Inode)'],
+            labels: ['Contiguous', 'Linked', 'Indexed'],
             datasets: [{
               label: 'Akses Disk',
-              data: [0, 0, 0],
-              backgroundColor: ['#2563eb', '#3b82f6', '#60a5fa'],
-              borderColor: '#000000',
-              borderWidth: 1,
-              borderRadius: 0
+              data: [1, 4, 2],
+              backgroundColor: barColors,
+              borderColor: borderColor,
+              borderWidth: 2,
+              borderRadius: 6
             }]
           },
           options: {
@@ -46,12 +48,11 @@
               y: {
                 beginAtZero: true,
                 suggestedMax: 4,
-                ticks: { stepSize: 1, color: '#000000', font: chartFont },
-                grid: { color: '#e2e8f0' },
-                title: { display: true, text: 'Akses I/O', color: '#000000', font: chartFont }
+                ticks: { stepSize: 1, color: '#111111', font: chartFont },
+                grid: { color: '#e2e8f0', borderDash: [3, 3] }
               },
               x: {
-                ticks: { color: '#000000', font: chartFont },
+                ticks: { color: '#111111', font: chartFont },
                 grid: { display: false }
               }
             }
@@ -65,14 +66,14 @@
         this.fragChart = new Chart(ctxFrag, {
           type: 'bar',
           data: {
-            labels: ['Contiguous', 'Linked (FAT)', 'Indexed (Inode)'],
+            labels: ['Contiguous', 'Linked', 'Indexed'],
             datasets: [{
               label: 'Frag. Internal (KB)',
-              data: [0, 0, 0],
-              backgroundColor: ['#60a5fa', '#3b82f6', '#2563eb'],
-              borderColor: '#000000',
-              borderWidth: 1,
-              borderRadius: 0
+              data: [2, 2, 4],
+              backgroundColor: barColors,
+              borderColor: borderColor,
+              borderWidth: 2,
+              borderRadius: 6
             }]
           },
           options: {
@@ -84,12 +85,11 @@
               y: {
                 beginAtZero: true,
                 suggestedMax: 8,
-                ticks: { color: '#000000', font: chartFont },
-                grid: { color: '#e2e8f0' },
-                title: { display: true, text: 'KB', color: '#000000', font: chartFont }
+                ticks: { color: '#111111', font: chartFont },
+                grid: { color: '#e2e8f0', borderDash: [3, 3] }
               },
               x: {
-                ticks: { color: '#000000', font: chartFont },
+                ticks: { color: '#111111', font: chartFont },
                 grid: { display: false }
               }
             }
@@ -103,14 +103,14 @@
         this.memoryChart = new Chart(ctxMem, {
           type: 'bar',
           data: {
-            labels: ['Contiguous', 'Linked (FAT)', 'Indexed (Inode)'],
+            labels: ['Contiguous', 'Linked', 'Indexed'],
             datasets: [{
-              label: 'Memori Struktur (Bytes)',
-              data: [0, 48, 0],
-              backgroundColor: ['#93c5fd', '#3b82f6', '#2563eb'],
-              borderColor: '#000000',
-              borderWidth: 1,
-              borderRadius: 0
+              label: 'Memori Struktur (B)',
+              data: [0, 48, 24],
+              backgroundColor: barColors,
+              borderColor: borderColor,
+              borderWidth: 2,
+              borderRadius: 6
             }]
           },
           options: {
@@ -121,13 +121,12 @@
             scales: {
               y: {
                 beginAtZero: true,
-                suggestedMax: 120,
-                ticks: { color: '#000000', font: chartFont },
-                grid: { color: '#e2e8f0' },
-                title: { display: true, text: 'Bytes', color: '#000000', font: chartFont }
+                suggestedMax: 60,
+                ticks: { color: '#111111', font: chartFont },
+                grid: { color: '#e2e8f0', borderDash: [3, 3] }
               },
               x: {
-                ticks: { color: '#000000', font: chartFont },
+                ticks: { color: '#111111', font: chartFont },
                 grid: { display: false }
               }
             }
@@ -145,9 +144,9 @@
 
       if (this.accessChart) {
         this.accessChart.data.datasets[0].data = [
-          c.readCostBlockN || 0,
-          l.readCostBlockN || 0,
-          i.readCostBlockN || 0
+          c.readCostBlockN !== undefined ? c.readCostBlockN : 1,
+          l.readCostBlockN !== undefined ? l.readCostBlockN : 4,
+          i.readCostBlockN !== undefined ? i.readCostBlockN : 2
         ];
         this.accessChart.update();
       }
@@ -164,8 +163,8 @@
       if (this.memoryChart) {
         this.memoryChart.data.datasets[0].data = [
           c.structureMemoryBytes || 0,
-          l.structureMemoryBytes || 0,
-          i.structureMemoryBytes || 0
+          l.structureMemoryBytes || 48,
+          i.structureMemoryBytes || 24
         ];
         this.memoryChart.update();
       }
@@ -179,58 +178,50 @@
       const l = comparisonResults.linked.metrics || {};
       const i = comparisonResults.indexed.metrics || {};
 
-      const getStatusText = (m) => {
-        if (!m || m.activeFilesCount === 0) return 'Siap Alokasi';
-        if (m.failedCount > 0) return 'Gagal (Frag. Eksternal)';
-        return 'Berhasil';
+      const renderStatusBadge = (m) => {
+        if (m && m.failedCount > 0) {
+          return '<span class="pill er" style="padding:1px 12px;font-size:11px">Gagal</span>';
+        }
+        return '<span class="pill ok" style="padding:1px 12px;font-size:11px">Siap</span>';
       };
 
       const rows = [
         {
           method: 'Contiguous (First-Fit)',
-          status: getStatusText(c),
+          status: renderStatusBadge(c),
           externalFrag: c.externalFrag ? 'Ya' : 'Tidak',
           internalFrag: `${c.internalFragKB || 0} KB`,
-          readCost: `${c.readCostBlockN || 0} Akses`,
-          structureMem: `${c.structureMemoryBytes || 0} B`,
-          metadata: `${c.metadataEntries || 0} entri`,
+          readCost: `${c.readCostBlockN || 1} akses`,
           prosCons: 'Akses cepat; rentan fragmentasi eksternal.'
         },
         {
           method: 'Linked Allocation (FAT)',
-          status: getStatusText(l),
+          status: renderStatusBadge(l),
           externalFrag: 'Tidak',
           internalFrag: `${l.internalFragKB || 0} KB`,
-          readCost: `${l.readCostBlockN || 0} Akses`,
-          structureMem: `${l.structureMemoryBytes || 0} B`,
-          metadata: `${l.metadataEntries || 0} entri`,
+          readCost: `${l.readCostBlockN || 'n'} akses`,
           prosCons: 'Bebas fragmentasi eksternal; akses acak lambat.'
         },
         {
-          method: 'Indexed Allocation (Inode)',
-          status: getStatusText(i),
+          method: 'Indexed (Inode)',
+          status: renderStatusBadge(i),
           externalFrag: 'Tidak',
           internalFrag: `${i.internalFragKB || 0} KB`,
-          readCost: `${i.readCostBlockN || 0} Akses`,
-          structureMem: `${i.structureMemoryBytes || 0} B`,
-          metadata: `${i.metadataEntries || 0} entri`,
-          prosCons: 'Akses acak langsung via pointer; overhead blok indeks.'
+          readCost: `${i.readCostBlockN || 2} akses`,
+          prosCons: 'Akses acak langsung; overhead blok indeks.'
         }
       ];
 
       tbody.innerHTML = '';
       rows.forEach(r => {
         const tr = document.createElement('tr');
-        tr.className = 'border-b border-slate-200 text-xs text-black hover:bg-slate-50';
         tr.innerHTML = `
-          <td class="py-2 px-3 font-bold text-black">${r.method}</td>
-          <td class="py-2 px-3 font-semibold text-black">${r.status}</td>
-          <td class="py-2 px-3 font-semibold text-black">${r.externalFrag}</td>
-          <td class="py-2 px-3 text-black">${r.internalFrag}</td>
-          <td class="py-2 px-3 font-bold text-blue-700">${r.readCost}</td>
-          <td class="py-2 px-3 text-black">${r.structureMem}</td>
-          <td class="py-2 px-3 text-black">${r.metadata}</td>
-          <td class="py-2 px-3 text-black">${r.prosCons}</td>
+          <td><b>${r.method}</b></td>
+          <td>${r.status}</td>
+          <td>${r.externalFrag}</td>
+          <td>${r.internalFrag}</td>
+          <td style="font-family:monospace;font-weight:700">${r.readCost}</td>
+          <td>${r.prosCons}</td>
         `;
         tbody.appendChild(tr);
       });
