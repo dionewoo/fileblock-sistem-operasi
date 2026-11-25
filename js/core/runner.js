@@ -134,7 +134,8 @@
           res = allocationModule.allocateFile(diskModel, diskModel.cloneBlocks(currentBlocks), JSON.parse(JSON.stringify(activeFiles)), {
             file: fileId,
             name: fileName,
-            sizeKB
+            sizeKB,
+            customBlocks: op.customBlocks
           }, config, aux);
 
           if (res.ok) {
